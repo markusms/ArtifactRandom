@@ -1,0 +1,530 @@
+﻿@page "/custom"
+
+<h1>Customized random deck creator</h1>
+
+<input type="checkbox" bind="@chosenColors.RedChosen" /> Red cards <br />
+<input type="checkbox" bind="@chosenColors.GreenChosen" /> Green cards <br />
+<input type="checkbox" bind="@chosenColors.BlueChosen" /> Blue cards <br />
+<input type="checkbox" bind="@chosenColors.BlackChosen" /> Black cards <br />
+<input type="checkbox" bind="@chosenColors.BalancedChosen" /> Balanced card colors (8 same colored cards for each hero at 40 cards, 9 at 45 cards...) <br />
+<input bind="@chosenColors.AmounOfCards" /> Amount of cards (min 40) <br />
+<input bind="@chosenColors.AmounOfItems" /> Amount of items (min 9) <br /><br />
+
+<button onclick="@AddDeck">Create</button> <br /><br />
+
+<ul>
+    @foreach (var deck in decks)
+    {
+        <li><a href=@deck.Code target="_blank" class="linkLightBlue">@deck.Code</a></li>
+    }
+</ul>
+
+@functions {
+
+    int counter = 0;
+
+    IList<NewDeck> decks = new List<NewDeck>();
+    ColorChosen chosenColors = new ColorChosen();
+
+    static Random rnd = new Random();
+
+    private void AddDeck()
+    {
+        counter++;
+        chosenColors.SetHeroesToZero(); //reinitialize the amount of heroes
+        if (chosenColors.AmounOfCards < 40)
+            chosenColors.AmounOfCards = 40;
+        if (chosenColors.AmounOfCards > 100)
+            chosenColors.AmounOfCards = 100;
+        if (chosenColors.AmounOfItems < 9)
+            chosenColors.AmounOfItems = 9;
+        if (chosenColors.AmounOfItems > 40)
+            chosenColors.AmounOfItems = 40;
+        //if the deck requires mana balance and has more than the normal minimum amount of cards
+        if (chosenColors.AmounOfCards > 44)
+            chosenColors.ManaBalance = chosenColors.AmounOfCards / 5;
+        chooseHeroes(); //choose the heroes to be picked
+        string deck = DeckCodeCreation(chosenColors.RedHeroes, chosenColors.GreenHeroes, chosenColors.BlueHeroes, chosenColors.BlackHeroes, chosenColors.AmounOfCards, chosenColors.AmounOfItems);
+        decks.Add(new NewDeck { Code = deck });
+    }
+
+    private void chooseHeroes()
+    {
+        if (!chosenColors.RedChosen && !chosenColors.GreenChosen && !chosenColors.BlueChosen && !chosenColors.BlackChosen)
+        {
+            return;
+        }
+        else
+        {
+            if (chosenColors.RedChosen)
+                chosenColors.RedHeroes++;
+            if (chosenColors.GreenChosen)
+                chosenColors.GreenHeroes++;
+            if (chosenColors.BlueChosen)
+                chosenColors.BlueHeroes++;
+            if (chosenColors.BlackChosen)
+                chosenColors.BlackHeroes++;
+        }
+
+        int amountOfHeroes = chosenColors.RedHeroes + chosenColors.GreenHeroes + chosenColors.BlueHeroes + chosenColors.BlackHeroes;
+        List<bool> colors = new List<bool>();
+        colors.Add(chosenColors.RedChosen);
+        colors.Add(chosenColors.GreenChosen);
+        colors.Add(chosenColors.BlueChosen);
+        colors.Add(chosenColors.BlackChosen);
+
+        int random = 0;
+        while (amountOfHeroes < 5)
+        {
+            random = rnd.Next(4); //random a color
+            bool colorThatWeWantToAdd = false;
+            do
+            {
+                colorThatWeWantToAdd = colors[random];
+                //color that we random is not used so we need to find a suitable color
+                if (!colorThatWeWantToAdd)
+                {
+                    if (random == 0)
+                    {
+                        random = 3;
+                    }
+                    else
+                    {
+                        random -= 1;
+                    }
+                }
+            } while (!colorThatWeWantToAdd);
+
+            AddHero(random);
+            amountOfHeroes++;
+        }
+    }
+
+    private void AddHero(int random)
+    {
+        switch (random)
+        {
+            case 0:
+                chosenColors.RedHeroes++;
+                break;
+            case 1:
+                chosenColors.GreenHeroes++;
+                break;
+            case 2:
+                chosenColors.BlueHeroes++;
+                break;
+            case 3:
+                chosenColors.BlackHeroes++;
+                break;
+        }
+    }
+
+    private string DeckCodeCreation(int redHeroes, int greenHeroes, int blueHeroes, int blackHeroes, int amountOfCards, int items)
+    {
+        int maxCards = 40;
+        int cardsInDeck = 15; //5 heroes x 3
+        int maxItems = 9;
+        int itemsInDeck = 0;
+        int amountOfRedHeroes = 0;
+        int amountOfGreenHeroes = 0;
+        int amountOfBlueHeroes = 0;
+        int amountOfBlackHeroes = 0;
+
+        if (amountOfCards != 0)
+        {
+            maxCards = amountOfCards;
+        }
+        if (items != 0)
+        {
+            maxItems = items;
+        }
+        amountOfRedHeroes += redHeroes;
+        amountOfGreenHeroes += greenHeroes;
+        amountOfBlueHeroes += blueHeroes;
+        amountOfBlackHeroes += blackHeroes;
+
+        Cards cards = new Cards();
+        Deck deck = new Deck();
+        deck.Name = "Meta Breaker " + counter;
+        deck.Heroes = new List<HeroRef>();
+        deck.Cards = new List<CardRef>();
+
+        //no hero parameters given
+        if ((redHeroes == 0) && (greenHeroes == 0) && (blackHeroes == 0) && (blueHeroes == 0))
+        {
+            //Choose 5 random heroes
+            List<bool> colors = new List<bool>();
+            bool red = false;
+            bool green = false;
+            bool blue = false;
+            bool black = false;
+            colors.Add(red);
+            colors.Add(green);
+            colors.Add(blue);
+            colors.Add(black);
+
+            //choose which colors we use
+            bool randomedTrue = false;
+            do
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    int useColor = rnd.Next(2);
+                    if (useColor == 1)
+                    {
+                        colors[i] = true;
+                        randomedTrue = true;
+                    }
+                }
+            } while (!randomedTrue);
+
+            int numberOfHeroes = 0;
+            List<int> heroesToChoose = new List<int>();
+
+            //random heroes
+            while (numberOfHeroes < 5)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if (colors[i])
+                    {
+                        int random, hero;
+                        numberOfHeroes++;
+                        switch (i)
+                        {
+                            case 0: //red
+                                random = rnd.Next(cards.redHeroes.Count());
+                                hero = cards.redHeroes[random];
+                                //get a unique hero
+                                while (heroesToChoose.Contains(hero))
+                                {
+                                    random = rnd.Next(cards.redHeroes.Count());
+                                    hero = cards.redHeroes[random];
+                                }
+                                heroesToChoose.Add(hero);
+                                amountOfRedHeroes++;
+                                break;
+                            case 1: //green
+                                random = rnd.Next(cards.greenHeroes.Count());
+                                hero = cards.greenHeroes[random];
+                                while (heroesToChoose.Contains(hero))
+                                {
+                                    random = rnd.Next(cards.greenHeroes.Count());
+                                    hero = cards.greenHeroes[random];
+                                }
+                                heroesToChoose.Add(hero);
+                                amountOfGreenHeroes++;
+                                break;
+                            case 2: //blue
+                                random = rnd.Next(cards.blueHeroes.Count());
+                                hero = cards.blueHeroes[random];
+                                while (heroesToChoose.Contains(hero))
+                                {
+                                    random = rnd.Next(cards.blueHeroes.Count());
+                                    hero = cards.blueHeroes[random];
+                                }
+                                heroesToChoose.Add(hero);
+                                amountOfBlueHeroes++;
+                                break;
+                            case 3: //black
+                                random = rnd.Next(cards.blackHeroes.Count());
+                                hero = cards.blackHeroes[random];
+                                while (heroesToChoose.Contains(hero))
+                                {
+                                    random = rnd.Next(cards.blackHeroes.Count);
+                                    hero = cards.blackHeroes[random];
+                                }
+                                heroesToChoose.Add(hero);
+                                amountOfBlackHeroes++;
+                                break;
+                        }
+                    }
+                    if (numberOfHeroes >= 5)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+                if (i == 3)
+                {
+                    deck.Heroes.Add(new HeroRef { Id = heroesToChoose[i], Turn = 2 });
+                }
+                else if (i == 4)
+                {
+                    deck.Heroes.Add(new HeroRef { Id = heroesToChoose[i], Turn = 3 });
+                }
+                else
+                {
+                    deck.Heroes.Add(new HeroRef { Id = heroesToChoose[i], Turn = 1 });
+                }
+            }
+        }
+        else
+        {
+            List<int> heroesToChoose = PickHeroes(cards, amountOfRedHeroes, amountOfGreenHeroes, amountOfBlueHeroes, amountOfBlackHeroes);
+
+            for (int i = 0; i < 5; i++)
+            {
+                if (i == 3)
+                {
+                    deck.Heroes.Add(new HeroRef { Id = heroesToChoose[i], Turn = 2 });
+                }
+                else if (i == 4)
+                {
+                    deck.Heroes.Add(new HeroRef { Id = heroesToChoose[i], Turn = 3 });
+                }
+                else
+                {
+                    deck.Heroes.Add(new HeroRef { Id = heroesToChoose[i], Turn = 1 });
+                }
+            }
+        }
+
+        //lets choose nonhero cards
+        bool deckHasRed = false;
+        bool deckHasGreen = false;
+        bool deckHasBlue = false;
+        bool deckHasBlack = false;
+
+        if (amountOfRedHeroes > 0)
+        {
+            deckHasRed = true;
+        }
+        if (amountOfGreenHeroes > 0)
+        {
+            deckHasGreen = true;
+        }
+        if (amountOfBlueHeroes > 0)
+        {
+            deckHasBlue = true;
+        }
+        if (amountOfBlackHeroes > 0)
+        {
+            deckHasBlack = true;
+        }
+
+        string colorPicked = "";
+        int rng, cardId, copies = 0;
+        bool balance = chosenColors.BalancedChosen; //need to balance colors: 8 cards per hero
+        int amountOfRedCards = amountOfRedHeroes * 3;
+        int amountOfGreenCards = amountOfGreenHeroes * 3;
+        int amountOfBlueCards = amountOfBlueHeroes * 3;
+        int amountOfBlackCards = amountOfBlackHeroes * 3;
+        List<int> redCardsThatCanBeAdded = cards.redCards;
+        List<int> greenCardsThatCanBeAdded = cards.greenCards;
+        List<int> blueCardsThatCanBeAdded = cards.blueCards;
+        List<int> blackCardsThatCanBeAdded = cards.blackCards;
+
+        while (cardsInDeck < maxCards)
+        {
+            //amount of copies of the card to be added
+            copies = ChooseAmountOfCopies(cardsInDeck, maxCards);
+            //random suitable color
+            colorPicked = PickAColor(deckHasRed, deckHasGreen, deckHasBlue, deckHasBlack);
+            switch (colorPicked)
+            {
+                case "red":
+                    rng = rnd.Next(redCardsThatCanBeAdded.Count());
+                    cardId = redCardsThatCanBeAdded[rng];
+                    if (balance)
+                        copies = ChooseAmountOfCopies(amountOfRedCards, (amountOfRedHeroes * (chosenColors.ManaBalance)));
+                    deck.Cards.Add(new CardRef { Id = cardId, Count = copies });
+                    //remove it from the list so the same card can't be added again
+                    redCardsThatCanBeAdded.RemoveAt(rng);
+                    amountOfRedCards += copies;
+                    break;
+                case "green":
+                    rng = rnd.Next(greenCardsThatCanBeAdded.Count());
+                    cardId = greenCardsThatCanBeAdded[rng];
+                    if (balance)
+                        copies = ChooseAmountOfCopies(amountOfGreenCards, (amountOfGreenHeroes * (chosenColors.ManaBalance)));
+                    deck.Cards.Add(new CardRef { Id = cardId, Count = copies });
+                    greenCardsThatCanBeAdded.RemoveAt(rng);
+                    amountOfGreenCards += copies;
+                    break;
+                case "blue":
+                    rng = rnd.Next(blueCardsThatCanBeAdded.Count());
+                    cardId = blueCardsThatCanBeAdded[rng];
+                    if (balance)
+                        copies = ChooseAmountOfCopies(amountOfBlueCards, (amountOfBlueHeroes * (chosenColors.ManaBalance)));
+                    deck.Cards.Add(new CardRef { Id = cardId, Count = copies });
+                    blueCardsThatCanBeAdded.RemoveAt(rng);
+                    amountOfBlueCards += copies;
+                    break;
+                case "black":
+                    rng = rnd.Next(blackCardsThatCanBeAdded.Count());
+                    cardId = blackCardsThatCanBeAdded[rng];
+                    if (balance)
+                        copies = ChooseAmountOfCopies(amountOfBlackCards, (amountOfBlackHeroes * (chosenColors.ManaBalance)));
+                    deck.Cards.Add(new CardRef { Id = cardId, Count = copies });
+                    blackCardsThatCanBeAdded.RemoveAt(rng);
+                    amountOfBlackCards += copies;
+                    break;
+            }
+
+            cardsInDeck += copies;
+
+            if (balance)
+            {
+                //make sure there's a suitable amount of same colored cards which is about 8 cards for a hero
+                if (amountOfRedCards >= (amountOfRedHeroes * (chosenColors.ManaBalance)))
+                    deckHasRed = false;
+                if (amountOfGreenCards >= (amountOfGreenHeroes * (chosenColors.ManaBalance)))
+                    deckHasGreen = false;
+                if (amountOfBlueCards >= (amountOfBlueHeroes * (chosenColors.ManaBalance)))
+                    deckHasBlue = false;
+                if (amountOfBlackCards >= (amountOfBlackHeroes * (chosenColors.ManaBalance)))
+                    deckHasBlack = false;
+            }
+
+            //if we run out of cards
+            if (redCardsThatCanBeAdded.Count() == 0)
+                deckHasRed = false;
+            if (greenCardsThatCanBeAdded.Count() == 0)
+                deckHasGreen = false;
+            if (blueCardsThatCanBeAdded.Count() == 0)
+                deckHasBlue = false;
+            if (blackCardsThatCanBeAdded.Count() == 0)
+                deckHasBlack = false;
+            if (!deckHasRed && !deckHasGreen && !deckHasBlue && !deckHasBlack)
+                break;
+
+        }
+
+        List<int> itemsThatCanBeAdded = cards.items;
+        //pick items
+        while (itemsInDeck < maxItems)
+        {
+            rng = rnd.Next(itemsThatCanBeAdded.Count());
+            cardId = itemsThatCanBeAdded[rng];
+            copies = ChooseAmountOfCopies(itemsInDeck, maxItems);
+            deck.Cards.Add(new CardRef { Id = cardId, Count = copies });
+            itemsThatCanBeAdded.RemoveAt(rng);
+            itemsInDeck += copies;
+        }
+
+        return ("https://playartifact.com/d/" + DeckEncoder.EncodeDeck(deck) + "\n");
+
+    }
+
+    /// <summary>
+    /// Choose the amount of copies of the randomed card we want to add.
+    /// </summary>
+    /// <param name="currentCards"></param>
+    /// <param name="maxCards"></param>
+    /// <returns></returns>
+    private int ChooseAmountOfCopies(int currentCards, int maxCards)
+    {
+        if ((maxCards - currentCards) > 2)
+        {
+            return rnd.Next(1, 4);
+        }
+        else if ((maxCards - currentCards) == 2)
+        {
+            return rnd.Next(1, 3);
+        }
+        else
+        {
+            return 1;
+        }
+    }
+
+    private List<int> PickHeroes(Cards cards, int reds, int greens, int blues, int blacks)
+    {
+        int pickedRedHeroes = 0;
+        int pickedGreenHeroes = 0;
+        int pickedBlueHeroes = 0;
+        int pickedBlackHeroes = 0;
+        int rand, hero;
+        List<int> redHeroesThatCanBeAdded = cards.redHeroes;
+        List<int> greenHeroesThatCanBeAdded = cards.greenHeroes;
+        List<int> blueHeroesThatCanBeAdded = cards.blueHeroes;
+        List<int> blackHeroesThatCanBeAdded = cards.blackHeroes;
+        List<int> heroesToChoose = new List<int>();
+
+        while (pickedRedHeroes < reds)
+        {
+            rand = rnd.Next(redHeroesThatCanBeAdded.Count());
+            hero = redHeroesThatCanBeAdded[rand];
+            heroesToChoose.Add(hero);
+            redHeroesThatCanBeAdded.RemoveAt(rand);
+            pickedRedHeroes++;
+        }
+        while (pickedGreenHeroes < greens)
+        {
+            rand = rnd.Next(greenHeroesThatCanBeAdded.Count());
+            hero = greenHeroesThatCanBeAdded[rand];
+            heroesToChoose.Add(hero);
+            greenHeroesThatCanBeAdded.RemoveAt(rand);
+            pickedGreenHeroes++;
+        }
+        while (pickedBlueHeroes < blues)
+        {
+            rand = rnd.Next(blueHeroesThatCanBeAdded.Count());
+            hero = blueHeroesThatCanBeAdded[rand];
+            heroesToChoose.Add(hero);
+            blueHeroesThatCanBeAdded.RemoveAt(rand);
+            pickedBlueHeroes++;
+        }
+        while (pickedBlackHeroes < blacks)
+        {
+            rand = rnd.Next(blackHeroesThatCanBeAdded.Count());
+            hero = blackHeroesThatCanBeAdded[rand];
+            heroesToChoose.Add(hero);
+            blackHeroesThatCanBeAdded.RemoveAt(rand);
+            pickedBlackHeroes++;
+        }
+
+        return heroesToChoose;
+    }
+
+    private string PickAColor(bool red, bool green, bool blue, bool black)
+    {
+        int amountTrue = 0;
+        if (red)
+            amountTrue++;
+        if (green)
+            amountTrue++;
+        if (blue)
+            amountTrue++;
+        if (black)
+            amountTrue++;
+        if (amountTrue == 1)
+        {
+            if (red)
+                return "red";
+            if (green)
+                return "green";
+            if (blue)
+                return "blue";
+            if (black)
+                return "black";
+        }
+        //more than 1 was true: need rng
+        int random = rnd.Next(4);
+        while (true)
+        {
+            if (random == 0 && red == true)
+            {
+                return "red";
+            }
+            if (random == 1 && green == true)
+            {
+                return "green";
+            }
+            if (random == 2 && blue == true)
+            {
+                return "blue";
+            }
+            if (random == 3 && black == true)
+            {
+                return "black";
+            }
+            random = rnd.Next(4);
+        }
+    }
+
+}
